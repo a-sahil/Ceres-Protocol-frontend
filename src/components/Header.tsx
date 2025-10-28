@@ -6,6 +6,9 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext"; 
 import { UserCircle, LogOut } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
+// 1. Import Thirdweb components and your config
+import { ConnectButton } from "thirdweb/react";
+import { client, hederaTestnet } from "@/lib/thirdweb";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -82,6 +85,15 @@ const Header = () => {
              </DropdownMenu>
             ) : (
               <>
+               {/* 2. Add the ConnectButton here */}
+                <ConnectButton
+                  client={client}
+                  chain={hederaTestnet}
+                  // You can customize the modal theme
+                  connectModal={{
+                    size: "compact",
+                  }}
+                />
                 <Button asChild variant="outline" size="default">
                   <Link to="/login">Farmer Login</Link>
                 </Button>
