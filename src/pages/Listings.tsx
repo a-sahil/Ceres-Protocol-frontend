@@ -11,6 +11,8 @@ import { Search, MapPin, Star, Shield, Camera, Clock, Grid3x3, List } from "luci
 import { useQuery } from "@tanstack/react-query";
 import { getAllWarehouses } from "@/lib/api";
 import { Loader2 } from "lucide-react";
+import { IWarehouse } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
 
 
 // const warehouses = [
@@ -205,13 +207,17 @@ const Listings = () => {
                   </div>
 
               {/* Warehouse Grid - MAP OVER REAL DATA */}
-                  <div className={`grid gap-6 ${viewMode === "grid" ? "md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"}`}>
-                    {warehouses?.map((warehouse: any) => (
-                       <div key={warehouse._id} className="card-lift bg-card rounded-xl overflow-hidden border border-border shadow-sm">
-
-                        {/* IMAGE HANDLING - The backend saves local paths, we need full URLs */}
-                        <div className="relative h-48 bg-muted">
-                          {warehouse.images && warehouse.images.length > 0 ? (
+<div className={`grid gap-6 ${viewMode === "grid" ? "md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"}`}>
+  {warehouses?.map((warehouse: IWarehouse) => ( // Use the IWarehouse type
+     <div key={warehouse._id} className={`card-lift bg-card rounded-xl overflow-hidden border border-border shadow-sm ${warehouse.isBooked ? 'opacity-50' : ''}`}>
+       <div className="relative h-48 bg-muted">
+         {/* --- ADD A BOOKED OVERLAY --- */}
+         {warehouse.isBooked && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <Badge variant="destructive" className="text-lg">BOOKED</Badge>
+            </div>
+         )}
+         {warehouse.images && warehouse.images.length > 0 ? (
                              <img 
                                // NOTE: You might need to adjust this URL based on how your backend serves static files.
                                // If your backend is at localhost:5000, and it serves 'uploads' folder:
@@ -261,9 +267,9 @@ const Listings = () => {
         <div>
           <p className="text-2xl font-bold text-primary">
             {/* Use optional chaining and a fallback text if price is missing */}
-            {warehouse.price ? `₹${warehouse.price.toLocaleString()}` : 'Price not set'}
+            {warehouse.price ? `${warehouse.price.toLocaleString()}` : 'Price not set'}
           </p>
-          <p className="text-xs text-muted-foreground">/ton/month</p>
+          <p className="text-xs text-muted-foreground">HBAR/ton/month</p>
         </div>
 
                       {/* Availability */}
@@ -275,13 +281,14 @@ const Listings = () => {
                       </div>
 
                       {/* Action */}
-                     <Button 
-                             variant="outline" 
-                             className="w-full"
-                             onClick={() => navigate(`/warehouse/${warehouse._id}`)} // Use _id from MongoDB
-                           >
-                             View Details
-                           </Button>
+                     <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => navigate(`/warehouse/${warehouse._id}`)}
+            disabled={warehouse.isBooked} // Disable button if booked
+          >
+            {warehouse.isBooked ? "View Details" : "View & Book"}
+          </Button>
                     </div>
                   </div>
                 ))}

@@ -82,3 +82,24 @@ export const getWarehouseDetails = async (id: string) => {
   }
   return response.json();
 };
+
+export const bookWarehouse = async (id: string) => {
+  const token = localStorage.getItem('authToken');
+  if (!token) {
+    throw new Error('You must be logged in to book a warehouse.');
+  }
+
+  const response = await fetch(`${BASE_URL}/warehouses/${id}/book`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to book warehouse');
+  }
+  return response.json();
+};

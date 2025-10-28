@@ -1,25 +1,79 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { getWarehouseDetails } from "@/lib/api";
-import { ArrowLeft, MapPin, Package, Shield, Star, CheckCircle2, Phone, Mail, Loader2, AlertTriangle } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getWarehouseDetails, bookWarehouse } from "@/lib/api";
+import { ArrowLeft, MapPin, Package, Star, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useToast } from "@/hooks/use-toast";
 
-// REMOVE THE ENTIRE `const warehouseData = { ... };` MOCK OBJECT
+// --- CORE FIX: Let hooks get client from provider context ---
+import { useActiveAccount, useSendTransaction } from "thirdweb/react";
+import { toTokens } from "thirdweb";
+import { client, hederaTestnet } from "@/lib/thirdweb"; 
+import { BookingReceipt } from "@/components/BookingReceipt";
 
 const WarehouseDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Fetch the specific warehouse data using React Query
+  // --- FIX #2: Pass the client object to the hooks ---
+  const { mutate: sendTransaction, isPending: isTxPending } = useSendTransaction({ client });
+  const activeAccount = useActiveAccount({ client });
+
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [transactionHash, setTransactionHash] = useState("");
+
   const { data: warehouse, isLoading, isError, error } = useQuery({
-    queryKey: ['warehouse', id], // Unique key for this query
-    queryFn: () => getWarehouseDetails(id!), // The fetching function
-    enabled: !!id, // Only run the query if the id exists
+    queryKey: ['warehouse', id],
+    queryFn: () => getWarehouseDetails(id!),
+    enabled: !!id,
+  });
+  
+  const bookingMutation = useMutation({
+    mutationFn: bookWarehouse,
+    onSuccess: () => {
+      toast({ title: "Booking Finalized!", description: "The warehouse status has been updated." });
+      queryClient.invalidateQueries({ queryKey: ['warehouse', id] });
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      setShowReceipt(true);
+    },
+    onError: (e: Error) => {
+       toast({ title: "Booking Finalization Failed", description: e.message, variant: "destructive" });
+    }
   });
 
+  const handleBooking = () => {
+    if (!activeAccount) {
+      toast({ title: "Wallet Not Connected", variant: "destructive" });
+      return;
+    }
+    if (!warehouse?.walletAddress || !warehouse.price) {
+      toast({ title: "Error", description: "Warehouse wallet or price is missing.", variant: "destructive" });
+      return;
+    }
+
+    sendTransaction(
+      {
+        to: warehouse.walletAddress,
+        value: toTokens(warehouse.price.toString(), 8),
+        chain: hederaTestnet,
+      },
+      {
+        onSuccess: (txResult) => {
+          toast({ title: "Transaction Successful!", description: "Finalizing booking..." });
+          setTransactionHash(txResult.transactionHash);
+          bookingMutation.mutate(id!);
+        },
+        onError: (e) => {
+          toast({ title: "Transaction Failed", description: e.message, variant: "destructive" });
+        },
+      }
+    );
+  };
   // 1. Handle Loading State
   if (isLoading) {
     return (
@@ -49,6 +103,17 @@ const WarehouseDetails = () => {
 
   // 3. Render Dynamic Data
   return (
+    <>
+    
+      {/* --- ADD THIS RECEIPT LOGIC --- */}
+      {showReceipt && transactionHash && warehouse && (
+        <BookingReceipt 
+          warehouse={warehouse}
+          transactionHash={transactionHash}
+          onClose={() => setShowReceipt(false)}
+        />
+      )}
+
     <div className="min-h-screen flex flex-col bg-off-white">
       <Header />
       <main className="flex-1 py-8 md:py-12">
@@ -115,18 +180,36 @@ const WarehouseDetails = () => {
             {/* Sidebar - Right column */}
             <div className="space-y-6">
               <div className="bg-card rounded-2xl p-6 shadow-lg sticky top-24">
+                 <div className="space-y-3">
+              {warehouse.isBooked ? (
+                <Button size="lg" className="w-full" disabled>
+                  Warehouse Booked
+                </Button>
+              ) : (
+                <Button
+                  variant="hero"
+                  size="lg"
+                  className="w-full"
+                  onClick={handleBooking}
+                  disabled={isTxPending || bookingMutation.isPending}
+                >
+                  {(isTxPending || bookingMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isTxPending ? "Awaiting Wallet..." : bookingMutation.isPending ? "Finalizing..." : "Book Now"}
+                </Button>
+              )}
+            </div>
                 <div className="mb-6">
                   <p className="text-2xl font-bold text-secondary mb-1">
-                    {warehouse.price ? `₹${warehouse.price.toLocaleString()}` : 'Contact for Price'}
+                    {warehouse.price ? `${warehouse.price.toLocaleString()}` : 'Contact for Price'}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    /ton/month
+                     HBAR/ton/month
                   </p>
                 </div>
-                <div className="space-y-3">
+                {/* <div className="space-y-3">
                   <Button variant="hero" size="lg" className="w-full">Book Now</Button>
                   <Button variant="outline" size="lg" className="w-full">Request Quote</Button>
-                </div>
+                </div> */}
                 <div className="mt-6 pt-6 border-t border-border">
                   <p className="text-xs text-muted-foreground text-center">
                     Owner: <span className="font-medium text-foreground">{warehouse.ownerName}</span>
@@ -139,6 +222,7 @@ const WarehouseDetails = () => {
       </main>
       <Footer />
     </div>
+        </>
   );
 };
 

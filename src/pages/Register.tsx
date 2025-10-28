@@ -12,6 +12,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useMutation } from "@tanstack/react-query";
 import { registerWarehouse } from "@/lib/api";
+import { Wallet } from "lucide-react";
 
 const steps = [
   { number: 1, title: "Basic Info", icon: User },
@@ -27,6 +28,7 @@ const Register = () => {
     ownerName: "",
     capacity: "",
     price:"",
+    walletAddress: "",
     idType: "",
     idNumber: "",
     location: "",
@@ -100,7 +102,7 @@ const Register = () => {
   };
 
   const isStepComplete = (step: number) => {
-    if (step === 1)  return formData.warehouseName && formData.ownerName && formData.capacity && formData.price;
+      if (step === 1) return formData.warehouseName && formData.ownerName && formData.capacity && formData.price && formData.walletAddress;
     if (step === 2) return formData.location && warehouseImages.length > 0;
     if (step === 3) return formData.idType && formData.idNumber;
     return step < currentStep;
@@ -181,21 +183,34 @@ const Register = () => {
 
                     {/* ADD THIS PRICE INPUT BLOCK */}
                     <div className="space-y-2">
-                      <Label htmlFor="price">Price (per ton/month) *</Label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sage font-bold">₹</span>
+                      <Label htmlFor="price">Price (in HBAR per ton/month) *</Label>
                         <Input
                           id="price"
                           type="number"
-                          placeholder="e.g., 2500"
+                          placeholder="e.g., 0.002"
                           value={formData.price}
                           onChange={(e) => updateFormData("price", e.target.value)}
                           className="pl-8 h-12"
                           min="0"
                         />
-                      </div>
+                    
                       <p className="text-xs text-muted-foreground">Set the rental price for your storage space.</p>
                     </div>
+
+                     <div className="space-y-2">
+            <Label htmlFor="walletAddress">Receiving Wallet Address *</Label>
+            <div className="relative">
+                <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-sage" />
+                <Input
+                    id="walletAddress"
+                    placeholder="Your Hedera wallet address (e.g., 0.0.123456)"
+                    value={formData.walletAddress}
+                    onChange={(e) => updateFormData("walletAddress", e.target.value)}
+                    className="pl-10 h-12"
+                />
+            </div>
+            <p className="text-xs text-muted-foreground">This is where you'll receive payments.</p>
+        </div>
                   </>
                 )}
                 {currentStep === 2 && (
@@ -273,7 +288,7 @@ const Register = () => {
                         <div><p className="text-xs text-muted-foreground">Capacity</p><p className="font-medium">{formData.capacity ? `${formData.capacity} tons` : "—"}</p></div>
                          <div>
                                     <p className="text-xs text-muted-foreground">Price</p>
-                                    <p className="font-medium">{formData.price ? `₹${Number(formData.price).toLocaleString()}/ton/month` : "—"}</p>
+                                    <p className="font-medium">{formData.price ? `${Number(formData.price).toLocaleString()} HBAR/ton/month` : "—"}</p>
                                 </div>
                         <div><p className="text-xs text-muted-foreground">ID Type</p><p className="font-medium">{formData.idType || "—"}</p></div>
                       </div>

@@ -15,7 +15,7 @@ export const hederaTestnet = defineChain({
   nativeCurrency: {
     name: "HBAR",
     symbol: "HBAR",
-    decimals: 18,
+    decimals: 8,
   },
   testnet: true,
 });

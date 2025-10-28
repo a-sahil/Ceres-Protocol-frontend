@@ -61,39 +61,38 @@ const Header = () => {
             ))}
           </nav>
 
-                   {/* Desktop CTAs - UPDATED */}
+          {/* --- MODIFIED DESKTOP CTAs --- */}
           <div className="hidden md:flex items-center gap-3">
+            {/* 1. Always render the ConnectButton */}
+            <ConnectButton
+              client={client}
+              chain={hederaTestnet}
+              connectModal={{ size: "compact" }}
+            />
+
+            {/* 2. Conditionally render either the user dropdown or the login/register buttons */}
             {isAuthenticated ? (
-               <DropdownMenu>
-               <DropdownMenuTrigger asChild>
-                 <Button variant="ghost" className="flex items-center gap-2">
-                   <UserCircle className="h-5 w-5" />
-                   <span>{user?.fullName}</span>
-                 </Button>
-               </DropdownMenuTrigger>
-               <DropdownMenuContent align="end">
-                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                 <DropdownMenuSeparator />
-                 <DropdownMenuItem asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center gap-2">
+                    <UserCircle className="h-5 w-5" />
+                    <span>{user?.fullName}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
                     <Link to="/listings">Dashboard</Link>
-                 </DropdownMenuItem>
-                 <DropdownMenuItem onClick={logout} className="text-destructive">
-                   <LogOut className="mr-2 h-4 w-4" />
-                   <span>Log out</span>
-                 </DropdownMenuItem>
-               </DropdownMenuContent>
-             </DropdownMenu>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={logout} className="text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <>
-               {/* 2. Add the ConnectButton here */}
-                <ConnectButton
-                  client={client}
-                  chain={hederaTestnet}
-                  // You can customize the modal theme
-                  connectModal={{
-                    size: "compact",
-                  }}
-                />
                 <Button asChild variant="outline" size="default">
                   <Link to="/login">Farmer Login</Link>
                 </Button>
@@ -103,7 +102,7 @@ const Header = () => {
               </>
             )}
           </div>
-
+          
           {/* Mobile Menu */}
           {mobileMenuOpen && (
             <div className="md:hidden border-t border-border animate-fade-in">
