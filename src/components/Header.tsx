@@ -6,9 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext"; 
 import { UserCircle, LogOut } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
-// 1. Import Thirdweb components and your config
-import { ConnectButton } from "thirdweb/react";
-import { client, hederaTestnet } from "@/lib/thirdweb";
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -63,14 +61,8 @@ const Header = () => {
 
           {/* --- MODIFIED DESKTOP CTAs --- */}
           <div className="hidden md:flex items-center gap-3">
-            {/* 1. Always render the ConnectButton */}
-            <ConnectButton
-              client={client}
-              chain={hederaTestnet}
-              connectModal={{ size: "compact" }}
-            />
+            <ConnectButton />
 
-            {/* 2. Conditionally render either the user dropdown or the login/register buttons */}
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

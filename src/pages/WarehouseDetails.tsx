@@ -1,3 +1,5 @@
+// src/pages/WarehouseDetails.tsx
+
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -7,12 +9,10 @@ import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
-
-// --- CORE FIX: Let hooks get client from provider context ---
-import { useActiveAccount, useSendTransaction } from "thirdweb/react";
-import { toTokens } from "thirdweb";
-import { client, hederaTestnet } from "@/lib/thirdweb"; 
+import { useAccount, useSendTransaction } from 'wagmi';
+import { parseUnits } from 'viem';
 import { BookingReceipt } from "@/components/BookingReceipt";
+import { hederaAccountIdToEvmAddress } from "@/lib/utils"; // <-- IMPORT THE NEW FUNCTION
 
 const WarehouseDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,9 +20,8 @@ const WarehouseDetails = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // --- FIX #2: Pass the client object to the hooks ---
-  const { mutate: sendTransaction, isPending: isTxPending } = useSendTransaction({ client });
-  const activeAccount = useActiveAccount({ client });
+  const { address } = useAccount();
+  const { sendTransactionAsync, isPending: isTxPending } = useSendTransaction();
 
   const [showReceipt, setShowReceipt] = useState(false);
   const [transactionHash, setTransactionHash] = useState("");
@@ -46,9 +45,9 @@ const WarehouseDetails = () => {
     }
   });
 
-  const handleBooking = () => {
-    if (!activeAccount) {
-      toast({ title: "Wallet Not Connected", variant: "destructive" });
+  const handleBooking = async () => {
+    if (!address) {
+      toast({ title: "Wallet Not Connected", description: "Please connect your wallet to book.", variant: "destructive" });
       return;
     }
     if (!warehouse?.walletAddress || !warehouse.price) {
@@ -56,25 +55,31 @@ const WarehouseDetails = () => {
       return;
     }
 
-    sendTransaction(
-      {
-        to: warehouse.walletAddress,
-        value: toTokens(warehouse.price.toString(), 8),
-        chain: hederaTestnet,
-      },
-      {
-        onSuccess: (txResult) => {
-          toast({ title: "Transaction Successful!", description: "Finalizing booking..." });
-          setTransactionHash(txResult.transactionHash);
-          bookingMutation.mutate(id!);
-        },
-        onError: (e) => {
-          toast({ title: "Transaction Failed", description: e.message, variant: "destructive" });
-        },
-      }
-    );
+    try {
+      // --- CORE FIX: Convert the address before sending ---
+      const evmAddress = hederaAccountIdToEvmAddress(warehouse.walletAddress);
+
+      const txHash = await sendTransactionAsync({
+        to: evmAddress, // Use the converted address
+        value: parseUnits(warehouse.price.toString(), 8),
+      });
+
+      toast({ title: "Transaction Successful!", description: "Finalizing booking..." });
+      setTransactionHash(txHash);
+      bookingMutation.mutate(id!);
+
+    } catch (e: any) {
+      toast({ 
+        title: "Transaction Failed", 
+        description: e.message || "User rejected the transaction or an error occurred.", 
+        variant: "destructive" 
+      });
+    }
   };
-  // 1. Handle Loading State
+  
+  // ... rest of the component remains the same
+  // (Loading states, error states, and JSX)
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -84,7 +89,6 @@ const WarehouseDetails = () => {
     );
   }
 
-  // 2. Handle Error State
   if (isError || !warehouse) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-center">
@@ -101,11 +105,8 @@ const WarehouseDetails = () => {
     );
   }
 
-  // 3. Render Dynamic Data
   return (
     <>
-    
-      {/* --- ADD THIS RECEIPT LOGIC --- */}
       {showReceipt && transactionHash && warehouse && (
         <BookingReceipt 
           warehouse={warehouse}
@@ -129,7 +130,6 @@ const WarehouseDetails = () => {
 
           <div className="grid md:grid-cols-3 gap-8">
             <div className="md:col-span-2 space-y-6">
-              {/* Image Gallery */}
               <div className="bg-card rounded-2xl overflow-hidden shadow-lg">
                 <div className="relative h-96 bg-muted">
                     {warehouse.images?.[0] ? (
@@ -142,7 +142,6 @@ const WarehouseDetails = () => {
                 </div>
               </div>
 
-              {/* Warehouse Info */}
               <div className="bg-card rounded-2xl p-6 md:p-8 shadow-lg">
                 <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
                   {warehouse.warehouseName}
@@ -152,7 +151,6 @@ const WarehouseDetails = () => {
                   <span className="text-sm">{warehouse.location}</span>
                 </div>
 
-                {/* Quick Stats */}
                 <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-off-white rounded-lg">
                   <div className="text-center">
                     <Package className="h-6 w-6 text-sage mx-auto mb-2" />
@@ -177,9 +175,16 @@ const WarehouseDetails = () => {
               </div>
             </div>
 
-            {/* Sidebar - Right column */}
             <div className="space-y-6">
               <div className="bg-card rounded-2xl p-6 shadow-lg sticky top-24">
+                 <div className="mb-6">
+                  <p className="text-2xl font-bold text-secondary mb-1">
+                    {warehouse.price ? `${warehouse.price.toLocaleString()}` : 'Contact for Price'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                     HBAR/ton/month
+                  </p>
+                </div>
                  <div className="space-y-3">
               {warehouse.isBooked ? (
                 <Button size="lg" className="w-full" disabled>
@@ -198,18 +203,6 @@ const WarehouseDetails = () => {
                 </Button>
               )}
             </div>
-                <div className="mb-6">
-                  <p className="text-2xl font-bold text-secondary mb-1">
-                    {warehouse.price ? `${warehouse.price.toLocaleString()}` : 'Contact for Price'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                     HBAR/ton/month
-                  </p>
-                </div>
-                {/* <div className="space-y-3">
-                  <Button variant="hero" size="lg" className="w-full">Book Now</Button>
-                  <Button variant="outline" size="lg" className="w-full">Request Quote</Button>
-                </div> */}
                 <div className="mt-6 pt-6 border-t border-border">
                   <p className="text-xs text-muted-foreground text-center">
                     Owner: <span className="font-medium text-foreground">{warehouse.ownerName}</span>
