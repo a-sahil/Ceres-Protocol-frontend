@@ -21,7 +21,7 @@ export const hederaTestnet = defineChain({
 
 // Configure RainbowKit and Wagmi
 export const config = getDefaultConfig({
-  appName: 'AgriVault DAO',
+  appName: 'Ceres Protocol',
   // IMPORTANT: Replace with your actual projectId from WalletConnect Cloud
   projectId: '51739b9dafb35a0539a875882cafc1bf', 
   chains: [hederaTestnet],

@@ -13,7 +13,7 @@ const Footer = () => {
                 <Warehouse className="h-8 w-8" />
                 <Leaf className="h-4 w-4 absolute -bottom-1 -right-1" />
               </div>
-              <span className="text-xl font-bold">AgriVault DAO</span>
+              <span className="text-xl font-bold">Ceres Protocol</span>
             </Link>
             <p className="text-sm text-primary-foreground/80">
               Decentralized warehouse insurance for modern agriculture.
@@ -89,7 +89,7 @@ const Footer = () => {
 
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-primary-foreground/20 text-center text-sm text-primary-foreground/60">
-          <p>© 2025 AgriVault DAO. All rights reserved.</p>
+          <p>© 2025 Ceres Protocol. All rights reserved.</p>
         </div>
       </div>
     </footer>

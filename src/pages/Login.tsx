@@ -74,7 +74,7 @@ const Login = () => {
                 <Leaf className="h-5 w-5 text-secondary absolute -bottom-1 -right-1" />
               </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                AgriVault DAO
+                Ceres Protocol
               </span>
             </Link>
           </div>

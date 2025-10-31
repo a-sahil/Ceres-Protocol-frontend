@@ -37,7 +37,7 @@ const Header = () => {
               <Leaf className="h-4 w-4 text-secondary absolute -bottom-1 -right-1" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              AgriVault DAO
+              Ceres Protocol
             </span>
           </Link>
 
