@@ -83,23 +83,34 @@ export const getWarehouseDetails = async (id: string) => {
   return response.json();
 };
 
-export const bookWarehouse = async (id: string) => {
+// --- THIS IS THE UPDATED FUNCTION ---
+interface BookingPayload {
+  cropType: string;
+  cropQuantity: number;
+  duration: number;
+  insurance: boolean;
+  transactionHash: string;
+}
+
+export const bookWarehouse = async (id: string, data: BookingPayload) => {
   const token = localStorage.getItem('authToken');
   if (!token) {
     throw new Error('You must be logged in to book a warehouse.');
   }
 
+  // The URL is constructed here. 'id' MUST be a string.
   const response = await fetch(`${BASE_URL}/warehouses/${id}/book`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
+    body: JSON.stringify(data),
   });
 
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.message || 'Failed to book warehouse');
+    throw new Error(errorData.message || 'Failed to finalize booking on the server');
   }
   return response.json();
 };
