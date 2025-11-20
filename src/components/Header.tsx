@@ -17,8 +17,9 @@ const Header = () => {
     { name: "Home", path: "/" },
     { name: "How It Works", path: "/#how-it-works" },
     { name: "For Warehouses", path: "/#warehouses" },
-    { name: "For Farmers", path: "/#farmers" },
-    { name: "About", path: "/#about" },
+    { name: "Browse Warehouses", path: "/listings" },
+     { name: "Register Warehouse", path: "/register" },
+      { name: "DAO", path: "/dao" },
   ];
 
   const isActive = (path: string) => {

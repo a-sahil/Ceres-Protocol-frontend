@@ -1,5 +1,3 @@
-// src/pages/WarehouseDetails.tsx
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -9,10 +7,9 @@ import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
-import { useAccount, useSendTransaction } from 'wagmi';
+import { useAccount, useSendTransaction, useChainId, useSwitchChain } from 'wagmi';
 import { parseUnits } from 'viem';
 import { BookingReceipt } from "@/components/BookingReceipt";
-import { hederaAccountIdToEvmAddress } from "@/lib/utils"; // <-- IMPORT THE NEW FUNCTION
 
 const WarehouseDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +19,8 @@ const WarehouseDetails = () => {
 
   const { address } = useAccount();
   const { sendTransactionAsync, isPending: isTxPending } = useSendTransaction();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
 
   const [showReceipt, setShowReceipt] = useState(false);
   const [transactionHash, setTransactionHash] = useState("");
@@ -50,36 +49,90 @@ const WarehouseDetails = () => {
       toast({ title: "Wallet Not Connected", description: "Please connect your wallet to book.", variant: "destructive" });
       return;
     }
-    if (!warehouse?.walletAddress || !warehouse.price) {
-      toast({ title: "Error", description: "Warehouse wallet or price is missing.", variant: "destructive" });
+
+    if (!warehouse) {
+      toast({ title: "Error", description: "Warehouse data not loaded.", variant: "destructive" });
+      return;
+    }
+
+    if (!warehouse.walletAddress) {
+      toast({ title: "Error", description: "Warehouse wallet address is missing.", variant: "destructive" });
+      return;
+    }
+
+    if (!warehouse.price || warehouse.price <= 0) {
+      toast({ title: "Error", description: "Warehouse price is invalid.", variant: "destructive" });
       return;
     }
 
     try {
-      // --- CORE FIX: Convert the address before sending ---
-      const evmAddress = hederaAccountIdToEvmAddress(warehouse.walletAddress);
+      console.log('📋 Starting booking process...');
+      console.log('Current chain ID:', chainId);
+      console.log('Warehouse wallet:', warehouse.walletAddress);
 
-      const txHash = await sendTransactionAsync({
-        to: evmAddress, // Use the converted address
-        value: parseUnits(warehouse.price.toString(), 8),
+      // Step 1: Switch to Hedera if not already on it
+      if (chainId !== 296) {
+        console.log('🔄 Switching to Hedera Testnet...');
+        try {
+          await switchChain({ chainId: 296 });
+          console.log('✅ Switched to Hedera');
+        } catch (switchError: any) {
+          console.error('❌ Chain switch failed:', switchError);
+          toast({ 
+            title: "Network Switch Failed", 
+            description: "Please switch to Hedera Testnet in MetaMask manually.",
+            variant: "destructive" 
+          });
+          return;
+        }
+      }
+
+      // Step 2: Validate and use the warehouse address
+      const evmAddress = warehouse.walletAddress;
+      if (!evmAddress.startsWith('0x') || evmAddress.length !== 42) {
+        throw new Error(`Invalid warehouse address format: ${evmAddress}`);
+      }
+
+      // Step 3: Parse the price in Wei-HBAR (HBAR uses 18 decimals, same as Ethereum)
+      const parsedValue = parseUnits(warehouse.price.toString(), 18);
+      console.log('✅ Transaction params:', {
+        to: evmAddress,
+        from: address,
+        value: parsedValue.toString(),
       });
 
+      // Step 4: Send transaction
+      console.log('💸 Sending transaction...');
+      const txHash = await sendTransactionAsync({
+        to: evmAddress as `0x${string}`,
+        value: parsedValue,
+        account: address as `0x${string}`,
+      });
+
+      console.log('✅ Transaction sent:', txHash);
       toast({ title: "Transaction Successful!", description: "Finalizing booking..." });
       setTransactionHash(txHash);
       bookingMutation.mutate(id!);
 
     } catch (e: any) {
+      console.error('❌ Booking error:', e);
+      
+      let errorMessage = e?.message || "An unknown error occurred";
+      
+      if (e?.message?.includes('RPC endpoint')) {
+        errorMessage = "Network error. Please ensure Hedera Testnet is properly configured in MetaMask.";
+      } else if (e?.message?.includes('rejected')) {
+        errorMessage = "Transaction rejected.";
+      }
+      
       toast({ 
-        title: "Transaction Failed", 
-        description: e.message || "User rejected the transaction or an error occurred.", 
+        title: "Booking Failed", 
+        description: errorMessage,
         variant: "destructive" 
       });
     }
   };
   
-  // ... rest of the component remains the same
-  // (Loading states, error states, and JSX)
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

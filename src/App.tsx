@@ -15,6 +15,7 @@ import Register from "./pages/Register";
 import WarehouseDetails from "./pages/WarehouseDetails";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./context/AuthContext";
+import Dao from './pages/Dao';
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/listings" element={<Listings />} />
                 <Route path="/register" element={<Register />} />
+                 <Route path="/dao" element={<Dao />} />
                 <Route path="/warehouse/:id" element={<WarehouseDetails />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
